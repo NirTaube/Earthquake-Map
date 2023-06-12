@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Earthquake Map</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; }
+    #map { height: 100%; position: relative; z-index: 0; }
+    .legend { /* ... */ }
+    .legend-title { /* ... */ }
+    .legend-item { /* ... */ }
+    .legend-dot { /* ... */ }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <div class="legend">
+    <div class="legend-title">Magnitude</div>
+    <div class="legend-item"><span class="legend-dot" style="background-color: #ff0000;"></span><span>5+</span></div>
+    <div class="legend-item"><span class="legend-dot" style="background-color: #ff8800;"></span><span>4-5</span></div>
+    <div class="legend-item"><span class="legend-dot" style="background-color: #ffff00;"></span><span>3-4</span></div>
+    <div class="legend-item"><span class="legend-dot" style="background-color: #00ff00;"></span><span>2-3</span></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    var map = L.map('map').setView([0, 0], 2);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+      maxZoom: 18
+    }).addTo(map);
+
+    d3.json('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson')
+      .then(data => {
+        const earthquakes = data.features.map(feature => ({
+          lat: feature.geometry.coordinates[1],
+          lng: feature.geometry.coordinates[0],
+          magnitude: feature.properties.mag,
+          depth: feature.geometry.coordinates[2]
+        }));
+
+        function getMarkerStyle(magnitude) {
+          return {
+            radius: magnitude * 3,
+            fillColor: magnitude >= 5 ? '#ff0000' : magnitude >= 4 ? '#ff8800' : magnitude >= 3 ? '#ffff00' : '#00ff00',
+            color: '#000',
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.8
+          };
+        }
+
+        for (var i = 0; i < earthquakes.length; i++) {
+          var earthquake = earthquakes[i];
+          L.circleMarker([earthquake.lat, earthquake.lng], getMarkerStyle(earthquake.magnitude))
+            .bindPopup('Magnitude: ' + earthquake.magnitude + '<br>Depth: ' + earthquake.depth)
+            .addTo(map);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  </script>
+</body>
+
+</html>
